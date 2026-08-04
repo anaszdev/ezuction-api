@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # 1. قاعدة البيانات (PostgreSQL)
+  postgres:
+    image: postgres:15-alpine
+    container_name: auction-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: user_anas
+      POSTGRES_PASSWORD: password_secure
+      POSTGRES_DB: auction_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - auction_network
+
+  # 2. محرك المهام والـ Caching (Redis)
+  redis:
+    image: redis:7-alpine
+    container_name: auction-redis
+    restart: always
+    ports:
+      - '6380:6379' # 👈 تم التعديل هنا ليعمل خارجياً على 6380 تفادياً للازدحام
+    networks:
+      - auction_network
+
+  # 3. سيرفر الـ NestJS (تطبيقك)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auction-api
+    restart: always
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://user_anas:password_secure@postgres:5432/auction_db?schema=public
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379 # داخلياً على نفس الشبكة يبقى 6379 كما هو
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - auction_network
+
+volumes:
+  postgres_data:
+
+networks:
+  auction_network:
+    driver: bridge

@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HyperSink Production Client</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              darkBg: '#09090b',
+              cardBg: 'rgba(20, 20, 23, 0.6)',
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      body {
+        background-color: #09090b;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      }
+      .glass {
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      ::-webkit-scrollbar {
+        width: 4px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #3f3f46;
+        border-radius: 2px;
+      }
+    </style>
+  </head>
+  <body
+    class="text-zinc-200 min-h-screen flex items-center justify-center p-6 text-center"
+  >
+    <div class="glass bg-cardBg p-10 rounded-2xl w-full max-w-md shadow-2xl">
+      <div class="mb-4 flex justify-center">
+        <div
+          class="h-12 w-12 rounded-full bg-white flex items-center justify-center shadow-lg"
+        >
+          <span class="text-darkBg font-black text-xl">H</span>
+        </div>
+      </div>
+      <h1 class="text-white text-2xl font-semibold tracking-tight">
+        HyperSink Production
+      </h1>
+      <p class="text-zinc-500 text-sm mt-1 mb-8">
+        تسجيل دخول حقيقي وآمن عبر سيرفرات غوغل
+      </p>
+
+      <div class="flex justify-center mb-6">
+        <div id="googleButtonContainer"></div>
+      </div>
+
+      <div
+        id="responseConsole"
+        class="hidden p-4 rounded-lg border text-xs font-mono text-left bg-black/50 overflow-x-auto max-h-60 dir-ltr text-zinc-400"
+      ></div>
+    </div>
+
+    <script>
+      // الـ Client ID الحقيقي الخاص بك تم زرعه هنا بنجاح
+      const GOOGLE_CLIENT_ID =
+        '242226138873-i980h9s9bd0oro1vqs0v6bm1kegkujgt.apps.googleusercontent.com';
+      const BACKEND_URL = 'http://localhost:7000';
+
+      async function handleCredentialResponse(googleResponse) {
+        const consoleBox = document.getElementById('responseConsole');
+        consoleBox.classList.remove('hidden');
+        consoleBox.innerText = 'Connecting to NestJS backend...';
+
+        try {
+          // إرسال التوكن الحقيقي المشفر إلى دالة الـ NestJS الخاصة بك
+          const response = await fetch(`${BACKEND_URL}/auth/google/mobile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accessToken: googleResponse.credential }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok)
+            throw new Error(data.message || 'Authentication failed on backend');
+
+          // عرض التوكنات الناتجة من نظامك (Access & Refresh Tokens)
+          consoleBox.className =
+            'p-4 rounded-lg border text-xs font-mono text-left bg-black/50 border-emerald-500/30 text-emerald-400';
+          consoleBox.innerText =
+            '✅ Success!\n\n' + JSON.stringify(data, null, 2);
+        } catch (err) {
+          consoleBox.className =
+            'p-4 rounded-lg border text-xs font-mono text-left bg-black/50 border-red-500/30 text-red-400';
+          consoleBox.innerText = `❌ Error: ${err.message}`;
+        }
+      }
+
+      window.onload = function () {
+        // تهيئة مكتبة غوغل بالـ Client ID الحقيقي
+        google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: handleCredentialResponse,
+        });
+
+        // رندر زر غوغل الرسمي بالكامل
+        google.accounts.id.renderButton(
+          document.getElementById('googleButtonContainer'),
+          {
+            theme: 'filled_black',
+            size: 'large',
+            text: 'signup_with',
+            shape: 'pill',
+            width: '300',
+          },
+        );
+      };
+    </script>
+  </body>
+</html>

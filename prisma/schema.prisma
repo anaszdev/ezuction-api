@@ -1,0 +1,173 @@
+
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  fullName      String
+  username String? @unique 
+  isProfileCompleted Boolean @default(false)
+  picture       String?  
+  phone         String?   @unique 
+  googleId      String    @unique 
+  role          Role      @default(USER)
+  fcmToken      String?   
+  balance       Float     @default(0.0)      
+  frozenBalance Float     @default(0.0) 
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastSeenAt    DateTime? @default(now())
+  deletedAt     DateTime? 
+  deviceId      String?  
+  ipAddress     String?   
+  isActive      Boolean   @default(true)     
+  sessions      Session[]
+  auctions      Auction[]             @relation("SellerAuctions") 
+  bids          Bid[]                 
+  deposits      DepositRequest[]      
+  subscriptions AuctionSubscription[] 
+}
+
+enum Role {
+  USER
+  ADMIN
+  AGENT
+}
+model Session {
+  id          String   @id @default(cuid())
+  hashedToken String   @unique 
+  userAgent   String?  
+  ipAddress   String?  
+  revoked     Boolean  @default(false) 
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime 
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId]) 
+}
+
+model Auction {
+  id                  String        @id @default(cuid())
+  title               String
+  description         String
+  images              String[]     
+  startingPrice       Float       
+  currentPrice        Float         @default(0.0)  
+  category            CategoryType
+  address      String?    
+  latitude     Float?      
+  reservePrice        Float        
+  bidIncrement        Float         @default(10000)
+  depositRequired     Float         @default(50000) 
+  sellerDepositFrozen Float         @default(50000) 
+  minParticipants     Int           @default(1)    
+  
+  closureType         ClosureType   @default(SOFT) 
+  bufferTime          Int           @default(120)   
+  
+  status              AuctionStatus @default(UPCOMING)
+  startAt             DateTime
+  endAt               DateTime     
+  
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  sellerId            String
+  seller              User                  @relation("SellerAuctions", fields: [sellerId], references: [id])
+  bids                Bid[]
+  subscribers         AuctionSubscription[]
+  @@index([status, startAt])
+  @@index([sellerId])
+  @@index([category, city])
+}
+
+enum CategoryType {
+  CARS
+  MOTORCYCLES
+  ELECTRONICS
+  PHONES
+  LAPTOPS
+  DESKTOPS 
+  REAL_ESTATE
+}
+
+enum City {
+  DAMASCUS
+  HOMS
+  ALEPPO 
+  DARA
+  DAIRALZOR
+  HAMA
+}
+
+enum ClosureType {
+  FIXED
+  SOFT
+}
+
+enum AuctionStatus {
+  UPCOMING                     
+  LIVE                        
+  COMPLETED                   
+  CLOSED_SUCCESSFULLY          
+  RESERVE_NOT_MET              
+  CANCELED_INSUFFICIENT_BIDDERS 
+  CANCELED                     
+  SELLER_DEFAULTED             
+  BUYER_DEFAULTED              
+}
+
+model Bid {
+  id        String   @id @default(cuid())
+  amount    Float   
+  createdAt DateTime @default(now())
+  auctionId String
+  auction   Auction  @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+  userId    String   
+  bidder    User     @relation(fields: [userId], references: [id])
+
+  @@index([auctionId]) }
+
+model AuctionSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  auctionId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  auction   Auction  @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, auctionId]) 
+}
+
+
+model DepositRequest {
+  id            String        @id @default(cuid())
+  amount        Float       
+  method        PaymentMethod @default(MANUAL)
+  transactionNo String        @unique 
+  receiptImage  String?      
+  status        DepositStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt  
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+}
+
+enum PaymentMethod {
+  MANUAL
+  PAYPAL
+}
+
+enum DepositStatus {
+  PENDING   
+  APPROVED  
+  REJECTED  
+}
