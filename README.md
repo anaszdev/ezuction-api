@@ -1,3 +1,5 @@
+> 💡 **Note:** This is the **Backend** repository. To view and search the **Frontend** code, click [here](https://github.com/anaszdev/ezuction-frontend).
+
 # Ezuction Backend
 
 > A real-time online auction backend built around NestJS, PostgreSQL, Redis, Socket.IO, and BullMQ — with wallet reservations, auction lifecycle orchestration, Google OAuth 2.0 authentication, eligibility checks, and location-aware auction data.
